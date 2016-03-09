@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+
+if [[ -z "$1" ]]; then
+    echo "I need the lxc name!"
+    exit 1
+fi
+
+NAME=$1
+
+if [[ -z "$2" ]]; then 
+    echo "Defaulting to trusty..."
+    SERIES="trusty"
+else
+    SERIES="$2"
+fi
+
+echo "Creating container $NAME, series $SERIES"
+sudo lxc-create -n $NAME -t download -- --dist ubuntu --release $SERIES --arch amd64
+
+echo "Starting container $NAME ..."
+sudo lxc-start -n $NAME -d
+sudo lxc-wait -n $NAME -s RUNNING -t 5
+echo "Started... pausing for networking to come up..."
+
+ip=""
+while [[ -z "$ip" ]]; do
+    ip=$(sudo lxc-info -n $NAME -i | awk '{print $2}')
+    sleep .1
+done
+
+sudo lxc-attach -n $NAME -- sh -c 'echo "Acquire::http::Proxy \"http://10.0.3.1:3142\";" >> /etc/apt/apt.conf'
+sudo lxc-attach -n $NAME -- sh -c 'echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io'
+sudo lxc-attach -n $NAME -- sh -c 'apt-get update && apt-get -y upgrade'
+sudo lxc-attach -n $NAME -- sh -c 'apt-get install -y eatmydata'
+sudo lxc-attach -n $NAME -- sh -c 'eatmydata apt-get -y install openssh-server software-properties-common'
+sudo lxc-attach -n $NAME -- sh -c 'echo "ubuntu:ubuntu" | chpasswd'
+sudo lxc-attach -n $NAME -- sh -c 'mkdir /home/ubuntu/.ssh'
+sudo lxc-attach -n $NAME -- sh -c "echo \"$(cat ~/.ssh/id_rsa.pub)\" >> /home/ubuntu/.ssh/authorized_keys"
+sudo lxc-attach -n $NAME -- sh -c 'chown -R ubuntu.ubuntu /home/ubuntu/.ssh'
+sudo lxc-attach -n $NAME -- sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-no-password-for-ubuntu'
