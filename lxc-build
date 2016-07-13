@@ -2,6 +2,11 @@
 
 set -e
 
+# this is where APT_PROXY should be configured
+if [[ -f ~/.lxc-build.rc ]]; then
+    . ~/.lxc-build.rc
+fi
+
 if [[ -z "$1" ]]; then
     echo "I need the lxc name!"
     exit 1
@@ -30,7 +35,9 @@ while [[ -z "$ip" ]]; do
     sleep .1
 done
 
-sudo lxc-attach -n $NAME -- sh -c 'echo "Acquire::http::Proxy \"http://10.0.3.1:3142\";" >> /etc/apt/apt.conf'
+if [[ -n "$APT_PROXY" ]]; then
+    sudo lxc-attach -n $NAME -- sh -c "echo \"Acquire::http::Proxy \\\"${APT_PROXY}\\\";\" >> /etc/apt/apt.conf"
+fi
 sudo lxc-attach -n $NAME -- sh -c 'echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io'
 sudo lxc-attach -n $NAME -- sh -c 'apt-get update && apt-get -y upgrade'
 sudo lxc-attach -n $NAME -- sh -c 'apt-get install -y eatmydata'
