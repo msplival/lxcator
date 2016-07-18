@@ -2,6 +2,8 @@
 
 set -e
 
+NEWPASSWORD=$(pwgen -s 22 1)
+
 # this is where APT_PROXY should be configured
 if [[ -f ~/.lxc-build.rc ]]; then
     . ~/.lxc-build.rc
@@ -42,7 +44,7 @@ sudo lxc-attach -n $NAME -- sh -c 'echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d
 sudo lxc-attach -n $NAME -- sh -c 'apt-get update && apt-get -y upgrade'
 sudo lxc-attach -n $NAME -- sh -c 'apt-get install -y eatmydata'
 sudo lxc-attach -n $NAME -- sh -c 'eatmydata apt-get -y install openssh-server software-properties-common'
-sudo lxc-attach -n $NAME -- sh -c 'echo "ubuntu:ubuntu" | chpasswd'
+sudo lxc-attach -n $NAME -- sh -c "echo \"ubuntu:${NEWPASSWORD}\" | chpasswd"
 sudo lxc-attach -n $NAME -- sh -c 'mkdir /home/ubuntu/.ssh'
 sudo lxc-attach -n $NAME -- sh -c "echo \"$(cat ~/.ssh/id_rsa.pub)\" >> /home/ubuntu/.ssh/authorized_keys"
 sudo lxc-attach -n $NAME -- sh -c 'chown -R ubuntu.ubuntu /home/ubuntu/.ssh'
