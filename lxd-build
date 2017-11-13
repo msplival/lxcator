@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e
+
+NEWPASSWORD=$(pwgen -s 22 1)
+
+# this is where APT_PROXY should be configured
+if [[ -f ~/.lxd-build.rc ]]; then
+    . ~/.lxd-build.rc
+fi
+
+if [[ -z "$1" ]]; then
+    echo "I need the lxc name!"
+    exit 1
+fi
+
+NAME=$1
+
+if [[ -z "$2" ]]; then 
+    echo "Defaulting to xenial..."
+    SERIES="xenial"
+else
+    SERIES="$2"
+fi
+
+echo "Launching container $NAME, series $SERIES"
+lxc launch ubuntu:${SERIES} $NAME
+#sudo lxc-create -n $NAME -t download -- --dist ubuntu --release $SERIES --arch amd64
+echo -n "Launched... pausing for networking to come up."
+
+while ! $(lxc info $NAME | grep -q -E 'eth.*inet\W'); do
+    echo -n '.'
+done
+
+if [[ -n "$APT_PROXY" ]]; then
+    lxc exec $NAME -- sh -c "echo \"Acquire::http::Proxy \\\"${APT_PROXY}\\\";\" >> /etc/apt/apt.conf"
+fi
+lxc exec $NAME -- sh -c 'echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io'
+lxc exec $NAME -- sh -c 'apt-get update && eatmydata apt-get -y upgrade'
+#lxc exec $NAME -- sh -c 'apt-get install -y eatmydata'
+#lxc exec $NAME -- sh -c 'eatmydata apt-get -y install openssh-server software-properties-common'
+lxc exec $NAME -- sh -c "echo \"$(cat ~/.ssh/id_rsa.pub)\" >> /home/ubuntu/.ssh/authorized_keys"
+lxc exec $NAME -- sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-no-password-for-ubuntu'
