@@ -30,6 +30,7 @@ echo -n "Launched... pausing for networking to come up."
 
 while ! $(lxc info $NAME | grep -q -E 'eth.*inet\W'); do
     echo -n '.'
+    sleep .1
 done
 
 if [[ -n "$APT_PROXY" ]]; then
