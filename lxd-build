@@ -22,7 +22,10 @@ else
 fi
 
 echo "Launching container $NAME, series $SERIES"
-lxc launch ubuntu:"${SERIES}" "$NAME"
+set +e
+lxc launch -c security.nesting=true ubuntu-daily:"${SERIES}" "$NAME"
+set -e
+
 
 echo -n "Launched... pausing for networking to come up."
 while ! lxc info "$NAME" | grep -q -E "eth.*inet\W"; do
