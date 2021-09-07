@@ -28,7 +28,7 @@ set -e
 
 
 echo -n "Launched... pausing for networking to come up."
-while ! lxc info "$NAME" | grep -q -E "eth.*inet\W"; do
+while ! lxc list -c4 --format csv "$NAME" | grep -E "eth.*" ; do
     echo -n '.'
     sleep .1
 done
