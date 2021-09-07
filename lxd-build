@@ -14,9 +14,9 @@ fi
 
 NAME=$1
 
-if [[ -z "$2" ]]; then 
-    echo "Defaulting to xenial..."
-    SERIES="xenial"
+if [[ -z "$2" ]]; then
+    SERIES=$(lsb_release -cs)
+    echo "Defaulting to $SERIES..."
 else
     SERIES="$2"
 fi
