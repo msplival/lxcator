@@ -34,11 +34,14 @@ while ! lxc list -c4 --format csv "$NAME" | grep -E "eth.*" ; do
 done
 echo 
 
+SSH_KEY_PUBLIC="${SSH_KEY_PUBLIC:-$HOME/.ssh/id_rsa.pub}"
+
 if [[ -n "$APT_PROXY" ]]; then
     lxc exec "$NAME" -- sh -c "echo \"Acquire::http::Proxy \\\"${APT_PROXY}\\\";\" >> /etc/apt/apt.conf"
 fi
 lxc exec "$NAME" -- sh -c 'echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io'
 lxc exec "$NAME" -- sh -c 'apt-get update && eatmydata apt-get -y upgrade'
-lxc exec "$NAME" -- sh -c "echo \"$(cat ~/.ssh/id_rsa.pub)\" >> /home/ubuntu/.ssh/authorized_keys"
+echo "Ingesting public ssh key into container: $SSH_KEY_PUBLIC"
+lxc exec "$NAME" -- sh -c 'cat >> /home/ubuntu/.ssh/authorized_keys' < "$SSH_KEY_PUBLIC"
 lxc exec "$NAME" -- sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-no-password-for-ubuntu'
 
